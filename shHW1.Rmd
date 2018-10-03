@@ -1,0 +1,162 @@
+---
+title: "Soohyun HW1"
+author: "Soohyun Hwangbo"
+date: "September 26, 2018"
+output:
+  html_document: 
+    df_print: paged
+  pdf_document: default
+---
+
+Credits to Taj and Jeff for answering my questions.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#install.packages("randomNames")
+#install.packages("ggplot2")
+#install.packages("plotrix")
+library(randomNames)
+library(ggplot2)
+library(plotrix)
+```
+
+## Problem 1: Generating dataframe
+
+```{r}
+#durianSurvey <- data.frame()
+Names<-make.unique(c(randomNames::randomNames(300,which.names="first",sample.with.replacement=FALSE)))
+
+
+
+No_of_attempts<- replicate(300,sample(1:20,1))
+Good_Or_Nah <- No_of_attempts>5
+Current_Home <- replicate(300,sample(c("Abu Dhabi","Kuala Lumpur","London","New York","Bangkok"),1))
+durianSurvey <- data.frame(No_of_attempts,Current_Home,Good_Or_Nah)
+rownames(durianSurvey) <- Names
+```
+
+
+```{r}
+g<-ggplot(durianSurvey,aes(x=Good_Or_Nah,y=No_of_attempts))
+g+geom_boxplot(width=0.6,col="dark green")+theme_bw()
+```
+
+## Problem 2: Basic data manipulation and summary
+
+
+Q1.
+
+```{r}
+regvoters<- load("registeredvoters.Rdata") 
+noVoters<-ps$rv
+pollId<-ps$psid
+mean(noVoters)
+```
+ The mean of the registerd voters variable (rv) is 1362.493.
+ 
+ 
+Q2.
+```{r}
+var(noVoters)
+```
+
+ The variance of the registered voters variable (rv) is 1886490.
+
+
+Q3.
+```{r}
+rownames(ps)<-pollId
+ps['089/081',2] #Q3
+```
+
+The name of the polling station with psid 089/081 is "KAHUHO NURSERY SCHOOL."
+
+
+Q4.
+```{r}
+length(unique(ps$const)) #Q4
+length(which(ps$const == "LANGATA"))
+length(which(ps$const == "KINANGOP"))
+```
+
+There are 2 different constituencies - "LANGATA" and "KINANGOP" - in the data.
+LANGATA has 34 stations and KINANGOP has 100 stations.
+
+    
+Q5.
+```{r}
+length(which(ps$rv == 0)) #Q5
+ps$psname[which(ps$rv == 661)]
+```
+
+
+4 polling stations have zero registered voters.
+    "KIMURI SECONDARY SCHOOL." has 661 registered voters.
+
+
+Q6.
+```{r}
+groupLang <- ps[ps$const == "LANGATA",] #Q6
+groupKina <- ps[ps$const == "KINANGOP",]
+mean(groupLang$rv)
+mean(groupKina$rv)
+```
+
+The mean of voters in Langata is 2844.059, and the mean of voters in Kinangop is 858.76.
+Langata has a higer average number of registered voters.
+
+
+Q7.
+```{r}
+std.error(groupLang$rv) #Q7
+std.error(groupKina$rv)
+```
+
+The standard error (se) of voters in Langata is 336.1365, and se of voters in Kinangop 49.36454.
+
+Kinangop has a lower standard error.
+    
+Standard error is the standard deviation of sample means around the population mean - thus how far the sample
+mean values are away from its population mean. The larger the standard error, the greater this 'distance' is,
+meaning that sample mean values are less close to the population mean estimate. 
+
+Thus standard error depends on sample size and variance - variance is simply standard deviation
+is sqart(variance), and se = sd/sqrt(sample size). This means that if variance is large, sd will also become
+large in value, thus resulting in a larger standard error. However, if sample size (denominator) increases,
+this will result in a smaller value of se assuming sd (numerator) stays the same.
+
+
+
+## Problem 3: Building Confidence Intervals
+
+The percentage of Native American voters is 0.6%.
+
+```{r,echo=TRUE}
+ncSample <- readRDS('ncvoter27S.rds')
+sampleSize <- length(rownames(ncSample))
+voterNA <- nrow(ncSample[which(as.character(ncSample$race_code)=="I  "),]) #Taj's code
+proporNA <- voterNA/sampleSize #calculate proportion
+percentNA <- 100*(proporNA) #calculate percentage over the sample
+```
+
+In order to find out the confidence interval of the voter proportion, use the equation for standard
+deviation of proportion.
+
+```{r}
+samp.propor <- proporNA
+sd.Propor <- sqrt(proporNA*(1-proporNA)) #calculate sd of proportion
+se.Propor <- sd.Propor/sqrt(sampleSize) #calculate se of proportion
+propor.ci <- c(samp.propor-qnorm(0.975)*se.Propor, samp.propor, samp.propor+qnorm(0.975)*se.Propor) #ci
+```
+
+The confidence interval (ci) for sample proportion of Native Americans is
+(-0.0007691152,0.0127691152) on 95% ci.
+
+Confidence interval is how 'confident' it is for the population mean - in this case proportion - to
+be within the calculated interval. 95% ci means that the population mean will be within the given
+interval 95% of the time.
+
+However, the problem for this interval is that a negative value has been produced for the lower
+bound, which can't be established logically because this is a proportion of voters. There cannot be
+a negative number of Native Americans out of the registered voters, and this explains why the
+negative proportion cannot stand as valid.
