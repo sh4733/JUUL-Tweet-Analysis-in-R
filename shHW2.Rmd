@@ -1,0 +1,159 @@
+---
+title: "shHW2"
+author: "Soohyun"
+date: "2018<eb>ÖÑ 10<ec>õî 9<ec>ùº"
+output:
+  html_document:
+    df_print: paged
+---
+
+Credits to Jeff for Problem 2b) geom_pointrange() manual coding, as I couldn't figure out function elements
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(plyr)
+library(ggplot2)
+```
+
+## Problem 1: t-tests and hypothesis testing
+
+1. Creating factor variables
+```{r}
+scores <- readRDS("scores.Rds")
+scores$ethnicity <- NA
+scores[which(scores$black == TRUE),]$ethnicity <- "black"
+scores[which(scores$hispanic == TRUE),]$ethnicity <- "hispanic"
+scores[which(scores$asian == TRUE),]$ethnicity <- "asian"
+scores[which(scores$other == TRUE),]$ethnicity <- "other"
+scores[which(is.na(scores$ethnicity)),]$ethnicity <- "white"
+ethnicity <- factor(scores$ethnicity, levels = c("black", "hispanic", "asian","other","white"))
+class(ethnicity)
+```
+
+2. Do female students scores higher at 8th grade math than male students?
+```{r}
+girls8<- scores[which(scores$female == TRUE),]
+boys8<- scores[which(scores$female != TRUE),]
+t.test(boys8$zmath8,girls8$zmath8)
+```
+Alternative hypothesis is that the difference between mean scoress of male and female students in 8th grade math is not equal to 0 - in other words, there is a significant difference between the scoress of two groups. In this t-test we subtract girls' mean scores from the boys'. By testing if there is a significant difference, we can possibly argue that girls score better depending on the mean values as well. Ideally, the t-statistic should be negative if we want to see a higer mean for the female students' score.
+
+Null hypothesis would be that the difference in mean scores of both groups is equal to 0, or there is no difference between two groups. 
+The alternative hypothesis is that a significant difference exists in mean scores of both groups.
+
+The t-test shows that there is a large t-statistic and a very small p-value below 0.05. In addition, the confidence interval does not include 0, meaning that there is a significant difference in this hypothesis.
+
+From our results, we can conclude that there is sufficient evidence to reject null hypothesis of there being no difference; there is a notable difference in means of scores of male and female students. However, we also see that the mean of male students' scores is higher, which means that it is not feasible to argue that girls score better at 8th grade math than boys. In fact, in this test we see that boys score better in 8th grade math than girls.
+
+
+3. Kindergarten starting age vs. academic performance
+```{r}
+kinderage.mean <- mean(scores$kinderage)
+lower.age <- scores[which(scores$kinderage < kinderage.mean),]
+higher.age <- scores[which(scores$kinderage > kinderage.mean),]
+t.test(lower.age$zmath8, higher.age$zmath8)
+t.test(lower.age$zmathFk, higher.age$zmathFk)
+lm.age <- lm(zmath8 ~ kinderage, data = scores)
+
+```
+
+Prior to designing a statistical test, we should first clearly define the idea that we aim to examine. We need to define what we want the 'positive long-term effects on math performance' to be. Is it a larger improvement in scores per student over time? Or is it simply comparing the scores each student obtain at different ages?
+
+First, I conducted a test with 'better performance' translated as comparatively/higher absolute math scores.
+
+In this test, I categorized two groups of students based on the mean of kinderage (= average age of students at the time of kindergarten entry). One group would be those who entered at age younger than the mean, and the other would have been older than the mean at the start of kindergarten. 
+
+Next, I ran a t.test with 8th grade math scores of the two groups. The null hypothesis is that there would be no difference - that is, no one group would demonstrate an edge in performance over the other. The alternative would be that there IS a difference in performance of the two groups.    
+
+The outcome here was that a significant difference existed between the two groups. With an extremely small p-value (0.0003316) and a negative t-statistic (= -3.591), there was a difference in mean of 8th grade math scores. The lower age group performed worse than the higher age group as the difference between the two was negative (lower.age - higher.age/ 0.02797718 - 0.10993644 ), which means that it is unlikely for the students who entered kindergarten early to show better math performance, even in the long term.
+
+Meanwhile, the short-term underperformance could also be tested through same t-test. In this case I plugged in the math scores in fall of kindergarten. Here, the difference was even greater, with t-statistic of -17.386 and p-value 2.2e-16. The discrepancy in performance was much more evident at the point of entry (difference in age affects academic performance more directly)
+
+While the gap in math performance had been closed over time, it is difficult to conclude that early start in kindergarten will yield positive performance in the later years.
+
+
+
+## Problem 2: Linear Regression
+
+1. Linear regression of 8th grade math and socioeconomic status
+
+```{r pressure, echo=FALSE}
+lm.soc <- lm(formula = zmath8 ~ ses, data = scores)
+summary(lm.soc)
+
+```
+
+The linear regression model shows that at the the graph intercepts y (8th grade math scores) at -0.03262, meaning that when x (or socio-economic status) is 0 standard deviation, in other words of average socioeconomic status, the 8th grade math scores will be at -0.03262 standard deviation.
+
+The slope is 0.51792 - meaning that for 1 std increase in SES, the outcome value - 8th grade math scores - will increase by 0.51792. This is a positive value, which means that the linear regression is a positive line (proportional increase).
+
+In this case, the conditional expectation of the math scores at SES = -2 and SES = +2 can be calculated by using linear line equation, y = ax + b. Knowing that a is the slope and b is the coefficient (y-intercept value), y can be deduced for any x values. For SES values of -2 and 2, plugging them into linear equation would be y = 0.51792 * x - 0.03262. y = 0.51792 * (-2) - 0.03262 or y = 0.51792 * (2) - 0.03262. Calculating this would give y = -1.06845 (for SES = -2) and y = 1.00321 (for SES = 2).
+
+As a short cut, the same outcome can be predicted by using predict(). This function gives predicted outcomes (y) for certain x values.
+```{r}
+nd <- data.frame(ses = c(-2, 2))
+pred.out <- predict(lm.soc, newdata = nd)
+pred.out
+
+```
+
+This gives same results as our manually calculated outcomes.
+
+
+
+2. Linear regression of kindergarten reading scores and ethnicity
+```{r}
+lm.ethn <- lm(formula = zreadFk ~ ethnicity, data = scores)
+summary(lm.ethn)
+```
+
+This linear regression shows relationship between standardized kindergarten reading scores (zreadFk) and ethnicity. Ethnicity is a factor variable that had been created in the beginning.
+
+Here, the reference group - or the ethnicity at intercept - is Asian group (by default alphabetical ordering of factor variables.)
+
+According to the linear regression, Asians have the highest standardized reading score at kindergarten. Respectively, the scores for other ethnicities are calculated relative to the reference group - adding the coefficients. In this case the coefficients are all negative, meaning that other ethnicities all have lower reading scores compared to Asians. Adding up different ethnicity's coefficients to intercept value gives mean scores for each group.
+
+```{r}
+summary.ethn <- summary(lm.ethn)
+readFk <- summary.ethn$coef[,1] 
+se <- summary.ethn$coef[,2] 
+lower <- readFk - 1.96 * se 
+upper <- readFk + 1.96 * se 
+ethnicity <- row.names(summary.ethn$coef) 
+df <- data.frame(readFk,se,lower,upper)
+gg <- ggplot(df, aes(x=ethnicity,y=readFk,ymin=lower,ymax=upper)) 
+gg <- gg + geom_pointrange()
+gg <- gg + coord_flip() 
+gg
+```
+
+
+
+
+3. Self-designed linear regression analysis
+
+Categorical variable
+```{r}
+scores$wicFk <- as.factor(scores$wicFk)
+scores$wicFk <- revalue(scores$wicFk, c("0" = "nonrecipient", "1" = "recipient"))
+levels(scores$wicFk)
+lm.wic <- lm(formula = zmath8 ~ wicFk, data = scores)
+summary(lm.wic)
+
+```
+
+In this regression, I chose a categorical variable of welfare recipient children (x) to test my hypothesis that economic background affects children's academic performance (in this case, 8th grade math score as y). Using regression analysis, I am trying to see if there is any relationship between the two.
+
+x is a factor variable of two levels - nonrecipient and recipient - of welfare recipient children. Nonrecipient group is not in need of governmental subsidy, thus comparably well-off than the recipients.
+
+In the regression model, the nonrecipient model is at the intercept, meaning that it is the reference group. At the intercept when x is nonrecipient group, y is 0.30696 (std of math score). If x shifts to recipient group, the score falls by -0.70682 std math scores from its intercept (0.30696).
+
+Continuous variable
+```{r}
+lm.books <- lm(formula = zread8 ~ books, data = scores)
+summary(lm.books)
+ggplot(data = scores) + geom_point(aes(x = books, y = zread8)) +  geom_abline(intercept = lm.books$coefficients[1], slope = lm.books$coefficients[2], color = 'green', size = 2)
+```
+In this model, I set a hypothesis that the number of books affects 8th grade reading scores of students proportionally. The more books a child has, the better the reading score will be. The x (number of books in a child's home) is a continuous variable with y as standardized 8th grade reading score.
+
+When x = 0, the reading score is -0.2656518 std. For each increase in x (or per book), the reading scores increase by 0.0039576 - the coefficient for books. In the plotted regression line we see a positive relationship between the two variables, so the hypothesis fits in; as number of books increases, the reading score also increases.
